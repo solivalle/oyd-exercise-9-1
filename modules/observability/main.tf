@@ -1,3 +1,13 @@
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      version               = "~> 5.0"
+      configuration_aliases = [aws.us_east_1]
+    }
+  }
+}
+
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/app/${var.environment}/${var.app_name}"
   retention_in_days = var.log_retention_days
@@ -53,5 +63,26 @@ resource "aws_cloudwatch_metric_alarm" "latency" {
 
   dimensions = {
     LoadBalancer = var.alb_arn_suffix
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "estimated_charges" {
+  provider = aws.us_east_1
+
+  alarm_name          = "${var.environment}-estimated-charges"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "EstimatedCharges"
+  namespace           = "AWS/Billing"
+  period              = 86400
+  statistic           = "Maximum"
+  threshold           = var.estimated_charges_threshold
+  alarm_description   = "Estimated AWS charges exceeded $${var.estimated_charges_threshold} USD"
+  alarm_actions       = [aws_sns_topic.billing_alarms.arn]
+  ok_actions          = [aws_sns_topic.billing_alarms.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    Currency = "USD"
   }
 }
