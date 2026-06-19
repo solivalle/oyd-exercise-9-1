@@ -86,3 +86,19 @@ resource "aws_cloudwatch_metric_alarm" "estimated_charges" {
     Currency = "USD"
   }
 }
+
+resource "aws_budgets_budget" "monthly" {
+  name         = "${var.environment}-${var.app_name}-monthly"
+  budget_type  = "COST"
+  limit_amount = tostring(var.monthly_budget_usd)
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 80
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "ACTUAL"
+    subscriber_sns_topic_arns = [aws_sns_topic.alarms.arn]
+  }
+}
