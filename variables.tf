@@ -36,3 +36,15 @@ variable "estimated_charges_threshold" {
   type        = number
   default     = 10
 }
+
+variable "app_name" {
+  description = "Application name used in resource naming"
+  type        = string
+  default     = "session9"
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
+}
