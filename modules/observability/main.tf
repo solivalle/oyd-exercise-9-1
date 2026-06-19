@@ -28,6 +28,18 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = var.notification_email
 }
 
+resource "aws_sns_topic" "alarms_us_east_1" {
+  provider = aws.us_east_1
+  name     = "${var.environment}-${var.app_name}-alarms-us-east-1"
+}
+
+resource "aws_sns_topic_subscription" "email_us_east_1" {
+  provider  = aws.us_east_1
+  topic_arn = aws_sns_topic.alarms_us_east_1.arn
+  protocol  = "email"
+  endpoint  = var.notification_email
+}
+
 resource "aws_cloudwatch_metric_alarm" "http_5xx" {
   alarm_name          = "${var.environment}-${var.app_name}-http-5xx"
   comparison_operator = "GreaterThanThreshold"
@@ -67,8 +79,7 @@ resource "aws_cloudwatch_metric_alarm" "latency" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "estimated_charges" {
-  provider = aws.us_east_1
-
+  provider            = aws.us_east_1
   alarm_name          = "${var.environment}-estimated-charges"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -78,8 +89,8 @@ resource "aws_cloudwatch_metric_alarm" "estimated_charges" {
   statistic           = "Maximum"
   threshold           = var.estimated_charges_threshold
   alarm_description   = "Estimated AWS charges exceeded $${var.estimated_charges_threshold} USD"
-  alarm_actions       = [aws_sns_topic.billing_alarms.arn]
-  ok_actions          = [aws_sns_topic.billing_alarms.arn]
+  alarm_actions       = [aws_sns_topic.alarms_us_east_1.arn]
+  ok_actions          = [aws_sns_topic.alarms_us_east_1.arn]
   treat_missing_data  = "notBreaching"
 
   dimensions = {
@@ -88,6 +99,7 @@ resource "aws_cloudwatch_metric_alarm" "estimated_charges" {
 }
 
 resource "aws_budgets_budget" "monthly" {
+  provider     = aws.us_east_1
   name         = "${var.environment}-${var.app_name}-monthly"
   budget_type  = "COST"
   limit_amount = tostring(var.monthly_budget_usd)
@@ -99,6 +111,6 @@ resource "aws_budgets_budget" "monthly" {
     threshold                 = 80
     threshold_type            = "PERCENTAGE"
     notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alarms.arn]
+    subscriber_sns_topic_arns = [aws_sns_topic.alarms_us_east_1.arn]
   }
 }
